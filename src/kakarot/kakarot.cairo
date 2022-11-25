@@ -12,6 +12,9 @@ from kakarot.library import Kakarot
 from kakarot.model import model
 from kakarot.stack import Stack
 from kakarot.interfaces.interfaces import IEvmContract
+from kakarot.memory import Memory
+from kakarot.execution_context import ExecutionContext
+from starkware.cairo.common.dict import DictAccess
 
 // Constructor
 @constructor
@@ -37,20 +40,26 @@ func constructor{syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr
 func execute{
     syscall_ptr: felt*, pedersen_ptr: HashBuiltin*, range_check_ptr, bitwise_ptr: BitwiseBuiltin*
 }(value: felt, bytecode_len: felt, bytecode: felt*, calldata_len: felt, calldata: felt*) -> (
-    stack_len: felt, stack: Uint256*, memory_len: felt, memory: felt*, gas_used: felt
+    stack_len: felt,
+    stack: Uint256*,
+    memory_changes_len: felt,
+    memory_changes: felt*,
+    memory_real_len: felt,
+    gas_used: felt,
 ) {
     alloc_locals;
     local call_context: model.CallContext* = new model.CallContext(
         bytecode=bytecode, bytecode_len=bytecode_len, calldata=calldata, calldata_len=calldata_len, value=value
         );
-    let context = Kakarot.execute(call_context);
-    let len = Stack.len(context.stack);
+    let summary = Kakarot.execute(call_context);
+    let len = Stack.len(summary.stack);
     return (
         stack_len=len,
-        stack=context.stack.elements,
-        memory_len=context.memory.bytes_len,
-        memory=context.memory.bytes,
-        gas_used=context.gas_used,
+        stack=summary.stack.elements,
+        memory_changes_len=summary.memory.squashed_end - summary.memory.squashed_start,
+        memory_changes=summary.memory.squashed_start,
+        memory_real_len=summary.memory.bytes_len,
+        gas_used=summary.gas_used,
     );
 }
 
@@ -71,27 +80,30 @@ func execute_at_address{
 }(address: felt, value: felt, calldata_len: felt, calldata: felt*) -> (
     stack_len: felt,
     stack: Uint256*,
-    memory_len: felt,
-    memory: felt*,
+    memory_changes_len: felt,
+    memory_changes: felt*,
+    memory_real_len: felt,
     evm_contract_address: felt,
     starknet_contract_address: felt,
     return_data_len: felt,
     return_data: felt*,
 ) {
-    let context = Kakarot.execute_at_address(
+    alloc_locals;
+    let summary = Kakarot.execute_at_address(
         address=address, calldata_len=calldata_len, calldata=calldata, value=value
     );
 
-    let len = Stack.len(context.stack);
+    let len = Stack.len(summary.stack);
     return (
         stack_len=len,
-        stack=context.stack.elements,
-        memory_len=context.memory.bytes_len,
-        memory=context.memory.bytes,
-        evm_contract_address=context.evm_contract_address,
-        starknet_contract_address=context.starknet_contract_address,
-        return_data_len=context.return_data_len,
-        return_data=context.return_data,
+        stack=summary.stack.elements,
+        memory_changes_len=summary.memory.squashed_end - summary.memory.squashed_start,
+        memory_changes=summary.memory.squashed_start,
+        memory_real_len=summary.memory.bytes_len,
+        evm_contract_address=summary.evm_contract_address,
+        starknet_contract_address=summary.starknet_contract_address,
+        return_data_len=summary.return_data_len,
+        return_data=summary.return_data,
     );
 }
 

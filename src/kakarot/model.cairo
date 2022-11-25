@@ -4,6 +4,7 @@
 
 // StarkWare dependencies
 from starkware.cairo.common.uint256 import Uint256
+from starkware.cairo.common.dict import DictAccess
 
 namespace model {
     struct Stack {
@@ -12,8 +13,12 @@ namespace model {
     }
 
     struct Memory {
-        bytes: felt*,
-        bytes_len: felt,  // The size is counted with the highest address that was accessed.
+        // TODO: Save word_dict_start in the initialization only, to avoid unnecessary copies.
+        // Dictionary fomr chunk index to chunk vaue for 16B chunks.
+        // See `memory.cairo`.
+        word_dict_start: DictAccess*,
+        word_dict: DictAccess*,
+        bytes_len: felt,
     }
 
     struct CallContext {

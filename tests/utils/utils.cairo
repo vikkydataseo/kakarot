@@ -42,11 +42,13 @@ namespace test_utils {
         pedersen_ptr: HashBuiltin*,
         range_check_ptr,
         bitwise_ptr: BitwiseBuiltin*,
-    }(ctx: model.ExecutionContext*, expected_value: Uint256) {
+    }(ctx: model.ExecutionContext*, expected_value: Uint256) -> model.ExecutionContext* {
         alloc_locals;
-        let actual = Memory.load_n(ctx.memory, ctx.memory.end_index - 32, 32);
+        // Note that for soundness, we should rebind memory. But this is only for testing.
+        let (memory, actual) = Memory.load(ctx.memory, ctx.memory.end_index - 32);
         let (are_equal) = uint256_eq(actual, expected_value);
         assert are_equal = TRUE;
-        return ();
+        let ctx = ExecutionContext.update_memory(memory);
+        return ctx;
     }
 }

@@ -27,7 +27,18 @@ class TestZkEVM:
             for s in (params["stack"].split(",") if params["stack"] else [])
         ]
 
-        assert res.result.memory == hex_string_to_bytes_array(params["memory"])
+        mem = [0] * res.result.memory_real_len
+        print("AAA", res.result)
+        for i in range(0, len(res.result.memory_changes), 3):
+            k = res.result.memory_changes[i]
+            v = res.result.memory_changes[i + 2]
+            for j in range(16):
+                if k * 16 + 15 - j < len(mem):
+                    mem[k * 16 + 15 - j] = v % 256
+                else:
+                    assert v == 0
+                v //= 256
+        assert mem == hex_string_to_bytes_array(params["memory"])
         events = params.get("events")
         if events:
             assert [
